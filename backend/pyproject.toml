@@ -23,6 +23,9 @@ dependencies = [
     "camel-oasis==0.2.5",
     "camel-ai==0.2.78",
     
+    # YouTube transcript extraction
+    "youtube-transcript-api>=1.0.0",
+
     # 文件处理
     "PyMuPDF>=1.24.0",
     # 编码检测（支持非UTF-8编码的文本文件）
@@ -53,3 +56,9 @@ dev = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
+
+[tool.uv]
+override-dependencies = [
+    "tiktoken>=0.8.0",
+    "pillow>=10.4.0",
+]

@@ -7,6 +7,10 @@ import os
 from pathlib import Path
 from typing import List, Optional
 
+from .logger import get_logger
+
+logger = get_logger("mirofish.file_parser")
+
 
 def _read_text_with_fallback(file_path: str) -> str:
     """
@@ -117,8 +121,44 @@ class FileParser:
     
     @staticmethod
     def _extract_from_txt(file_path: str) -> str:
-        """从TXT提取文本，支持自动编码检测"""
-        return _read_text_with_fallback(file_path)
+        """Extract text from a .txt file.
+
+        If the file is a YouTube URL list (each line is a YouTube URL),
+        fetches transcripts and runs LLM extraction, returning a structured
+        investment signals document. Otherwise returns the raw text.
+        """
+        text = _read_text_with_fallback(file_path)
+
+        try:
+            from ..services.youtube_transcript_service import (
+                is_youtube_url_list,
+                process_youtube_url_list,
+            )
+            from pathlib import Path
+
+            if is_youtube_url_list(text):
+                from ..services.youtube_transcript_service import extract_ticker_from_text as _extract_ticker
+                import re as _re
+                # Prefer ticker embedded in the file content (e.g. "# TICKER: ASTS")
+                ticker = _extract_ticker(text)
+                if not ticker:
+                    # Fall back to filename heuristic (e.g. "NVDA_videos.txt" → "NVDA")
+                    stem = Path(file_path).stem.upper()
+                    m = _re.match(r"^([A-Z]{1,6})", stem)
+                    ticker = m.group(1) if m else ""
+
+                logger.info(
+                    f"Detected YouTube URL list in {file_path} — "
+                    f"extracting transcripts (ticker={ticker or 'general'})"
+                )
+                result = process_youtube_url_list(text, ticker=ticker)
+                if result:
+                    return result
+        except Exception as e:
+            # Fall back to plain text if transcript extraction fails
+            logger.warning(f"YouTube transcript extraction failed, using raw text: {e}")
+
+        return text
     
     @classmethod
     def extract_from_multiple(cls, file_paths: List[str]) -> str:

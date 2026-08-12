@@ -1,0 +1,4 @@
+# TICKER: NVDA
+# YouTube videos for NVDA stock analysis
+# Add one YouTube URL per line — MiroFish will extract transcripts automatically
+# Lines starting with # are ignored
